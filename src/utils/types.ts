@@ -62,3 +62,30 @@ export type CreateOutsourceTrackerParams = {
     response: string;
     comments: string;
   }
+
+  export type CreateCancelContractParams ={
+    type_item: string;
+    response: string;
+    comments: string;
+}
+export type UpdateCancelContractParams ={
+    type_item: string;
+    response: string;
+    comments: string;
+}
+export type CreateAfterValueParams ={
+    name_value: string;
+    price_value: number;
+}
+export type UpdateAfterValueParams ={
+    name_value: string;
+    price_value: number;
+}
+export type CreateBeforeValueParams ={
+    name_value: string;
+    price_value: number;
+}
+export type UpdateBeforeValueParams = {
+    name_value: string;
+    price_value: number;
+}

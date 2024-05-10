@@ -1,6 +1,6 @@
 
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, OneToMany } from 'typeorm';
-import { PhoneCallTracker } from './phone_tracker';
+
 
 
 @Entity()

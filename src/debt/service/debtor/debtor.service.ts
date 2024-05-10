@@ -1,16 +1,20 @@
   import { Get, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
   import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { CreateAfterValueDto, CreateBeforeValueDto, UpdateAfterValueDto, UpdateBeforeValueDto, UpdateCancelContractDto } from 'src/dtos/CancelContract.dto';
   import { UpdateDocumentTrackerDto } from 'src/dtos/Document_tracker.dto';
   import { CreateInstallmentDto } from 'src/dtos/Installment.dto';
   import { UpdateOutsourceTrackerDto } from 'src/dtos/Outsource_tracker.dto';
   import { CreatePhoneTrackerDto, UpdatePhoneTrackerDto } from 'src/dtos/Phone_tracker.dto';
+import { AfterValue } from 'src/entities/after_value';
+import { BeforeValue } from 'src/entities/before_value';
+import { CancelContract } from 'src/entities/cancel_contract';
   import { Debtor } from 'src/entities/debtors';
   import { DocumentTracker } from 'src/entities/document_tracker';
   import { Installment } from 'src/entities/installment';
   import { OutsourceTracker } from 'src/entities/outsource_tracker';
-  import { PhoneCallTracker } from 'src/entities/phone_tracker';
+  import { PhoneCallTracker } from 'src/entities/phone_call_tracker';
   import { Secondor } from 'src/entities/secondors';
-  import { CreateDocumentTrackerParams, CreateOutsourceTrackerParams, CreatePhoneTrackerParams } from 'src/utils/types';
+  import { CreateAfterValueParams, CreateBeforeValueParams, CreateCancelContractParams, CreateDocumentTrackerParams, CreateOutsourceTrackerParams, CreatePhoneTrackerParams } from 'src/utils/types';
   import { EntityManager, FindManyOptions, Repository } from 'typeorm';
 
   @Injectable()
@@ -24,6 +28,12 @@
           @InjectRepository(DocumentTracker) private documentTrackerRepository: Repository<DocumentTracker>,
           @InjectRepository(OutsourceTracker) private outsourceTrackerRepository: Repository<OutsourceTracker>,
           @InjectEntityManager() private readonly entityManager: EntityManager,
+          @InjectRepository(CancelContract)
+          private cancelContractRepository: Repository<CancelContract>,
+          @InjectRepository(AfterValue)
+          private afterValueRepository: Repository<AfterValue>,
+          @InjectRepository(BeforeValue )
+          private beforeValueRepository: Repository<BeforeValue>,
       ) { }
 
       async resetAutoIncrement(): Promise<void> {
@@ -50,13 +60,26 @@
           await this.debtorRepository.query(`SET @num = 0`);
           await this.debtorRepository.query(`UPDATE outsource_tracker SET id = @num := (@num + 1)`);
           await this.debtorRepository.query(`ALTER TABLE outsource_tracker AUTO_INCREMENT = 1`);
+
+          await this.debtorRepository.query(`SET @num = 0`);
+          await this.debtorRepository.query(`UPDATE cancel_contract SET id = @num := (@num + 1)`);
+          await this.debtorRepository.query(`ALTER TABLE cancel_contract AUTO_INCREMENT = 1`);
+
+          await this.debtorRepository.query(`SET @num = 0`);
+          await this.debtorRepository.query(`UPDATE after_value SET id = @num := (@num + 1)`);
+          await this.debtorRepository.query(`ALTER TABLE after_value  AUTO_INCREMENT = 1`);
+
+          await this.debtorRepository.query(`SET @num = 0`);
+          await this.debtorRepository.query(`UPDATE before_value SET id = @num := (@num + 1)`);
+          await this.debtorRepository.query(`ALTER TABLE before_value  AUTO_INCREMENT = 1`);
       }
 
       async findDebtors(): Promise<Debtor[]> {
           try {
               return await this.debtorRepository.find({
                   relations: [
-                      'installment', 'secondor', 'phoneCallTrackers','documentTrackers','outsourceTrackers'
+                      'installment', 'secondor', 'phoneCallTrackers','documentTrackers','outsourceTrackers','cancelContract',
+                      'afterValue','beforeValue'
                   ]
               });
           }
@@ -70,7 +93,10 @@
               where: {
                   id,
               },
-              relations: ['installment', 'secondor', 'phoneCallTrackers','documentTrackers','outsourceTrackers']
+              relations: ['installment', 'secondor', 'phoneCallTrackers','documentTrackers','outsourceTrackers','cancelContract'
+              ,
+              'afterValue','beforeValue'
+              ]
           });
       }
       async deleteDebtor(id: number): Promise<void> {
@@ -78,7 +104,7 @@
               where: {
                   id,
               },
-              relations: ['installment', 'secondor', 'phoneCallTrackers','documentTrackers','outsourceTrackers']
+              relations: ['installment', 'secondor', 'phoneCallTrackers','documentTrackers','outsourceTrackers','cancelContract']
           });
           if (!debtor) {
               throw new HttpException('Debtor not found', HttpStatus.NOT_FOUND);
@@ -194,7 +220,6 @@
             throw new Error('Failed to retrieve Document Tracker');
           }
         }
-
       async getDocumentTracker(id: number): Promise<DocumentTracker | null> {
           try {
               return await this.documentTrackerRepository.findOneBy({id});
@@ -323,11 +348,179 @@
 
       async countOutsourceTrackerByDebtorId(debtorId: number): Promise<number> {
         try {
-          const count = await this.outsourceTrackerRepository.count({ where: { debtor: { id: debtorId } } });
+          const count = await this.outsourceTrackerRepository.count({ where: { debtor: { id: debtorId } }, });
           return count;
         } catch (error) {
           console.error('Error counting OutsourceTracker by debtor ID:', error);
           throw new HttpException('Error counting OutsourceTracker by debtor ID', HttpStatus.INTERNAL_SERVER_ERROR);
         }
       }
+
+      //cancel contract
+      async getAllCancelContract(debtorId: number): Promise<CancelContract[]> {
+        try {
+          return await this.cancelContractRepository.find({ where: { debtor: { id: debtorId } },
+            relations: ['debtor'] });
+        } catch (error) {
+          throw new Error('Failed to retrieve CancelContract');
+        }
+      }
+
+    async getCancelContract(id: number): Promise<CancelContract | null> {
+        try {
+            return await this.cancelContractRepository.findOneBy({id});
+        } catch (error) {
+            throw new HttpException('Error retrieving CancelContract', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async createCancelContract(
+        id: number,
+        createCancelContractDetail: CreateCancelContractParams
+    ) {
+        const debtor = await this.debtorRepository.findOneBy({ id });
+        if (!debtor) throw new HttpException('User not found. Cannot create CancelContract', HttpStatus.BAD_REQUEST);
+        const newCancelContract = this.cancelContractRepository.create(
+            {
+                ...createCancelContractDetail,
+                debtor,
+            }
+        );
+        return this.cancelContractRepository.save(newCancelContract);
+
+    }
+    async updateCancelContract(id: number, updateCancelContractDto: UpdateCancelContractDto): Promise<CancelContract> {
+        const cancelContract = await this.cancelContractRepository.findOneBy({id});
+    
+        if (!cancelContract) {
+          throw new NotFoundException('Document Tracker not found');
+        }
+        cancelContract.type_item = updateCancelContractDto.type_item;
+        cancelContract.response = updateCancelContractDto.response;
+        cancelContract.comments = updateCancelContractDto.comments;
+    
+        return this.cancelContractRepository.save(cancelContract);
+      }
+    
+      async deleteCancelContract(id: number): Promise<void> {
+        const cancelContract = await this.cancelContractRepository.findOneBy({id});
+    
+        if (!cancelContract) {
+          throw new NotFoundException('Document Tracker not found');
+        }
+    
+        await this.cancelContractRepository.remove(cancelContract);
+      }
+
+      //count CancelContract
+      async countCancelContractUniqueDebtorIds(): Promise<number> {
+        const uniqueDebtorIds = await this.cancelContractRepository
+          .createQueryBuilder("cancelContract")
+          .select("DISTINCT(cancelContract.debtorId)", "debtorId")
+          .getRawMany();
+        return uniqueDebtorIds.length;
+      } 
+
+      async countCancelContractByDebtorId(debtorId: number): Promise<number> {
+        try {
+          const count = await this.cancelContractRepository.count({ where: { debtor: { id: debtorId } } });
+          return count;
+        } catch (error) {
+          console.error('Error counting CancelContract by debtor ID:', error);
+          throw new HttpException('Error counting CancelContract by debtor ID', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+      }
+
+
+    //Aftervalue
+    async getAllAftervalue(debtorId: number): Promise<AfterValue[]> {
+      try {
+        return await this.afterValueRepository.find({ where: { debtor: { id: debtorId } },
+          relations: ['debtor'] });
+      } catch (error) {
+        throw new Error('Failed to retrieve Aftervalue');
+      }
+    }
+
+  async createAftervalue(
+      id: number,
+      createAftervalueDetail: CreateAfterValueParams
+  ) {
+      const debtor = await this.debtorRepository.findOneBy({ id });
+      if (!debtor) throw new HttpException('User not found. Cannot create Aftervalue', HttpStatus.BAD_REQUEST);
+      const newAftervalue = this.afterValueRepository.create(
+          {
+              ...createAftervalueDetail,
+              debtor,
+          }
+      );
+      return this.afterValueRepository.save(newAftervalue);
+
+  }
+  async updateAftervalue(id: number, updateAftervalueDto: UpdateAfterValueDto): Promise<AfterValue> {
+      const aftervalue = await this.afterValueRepository.findOneBy({id});
+  
+      if (!aftervalue) {
+        throw new NotFoundException('Document Tracker not found');
+      }
+      aftervalue.name_value = updateAftervalueDto.name_value;
+      aftervalue.price_value = updateAftervalueDto.price_value;
+  
+      return this.afterValueRepository.save(aftervalue);
+    }
+  
+    async deleteAftervalue(id: number): Promise<void> {
+      const aftervalue = await this.afterValueRepository.findOneBy({id});
+  
+      if (!aftervalue) {
+        throw new NotFoundException('Document Tracker not found');
+      }
+  
+      await this.afterValueRepository.remove(aftervalue);
+    }
+     //Beforevalue
+     async getAllBeforevalue(debtorId: number): Promise<BeforeValue[]> {
+      try {
+        return await this.beforeValueRepository.find({ where: { debtor: { id: debtorId } },
+          relations: ['debtor'] });
+      } catch (error) {
+        throw new Error('Failed to retrieve Beforevalue');
+      }
+    }
+
+  async createBeforevalue(
+      id: number,
+      createBeforevalueDetail: CreateBeforeValueParams
+  ) {
+      const debtor = await this.debtorRepository.findOneBy({ id });
+      if (!debtor) throw new HttpException('User not found. Cannot create Beforevalue', HttpStatus.BAD_REQUEST);
+      const newBeforevalue = this.beforeValueRepository.create(
+          {
+              ...createBeforevalueDetail,
+              debtor,
+          }
+      );
+      return this.beforeValueRepository.save(newBeforevalue);
+
+  }
+  async updateBeforevalue(id: number, updateBeforevalueDto: UpdateBeforeValueDto): Promise<BeforeValue> {
+      const beforevalue = await this.beforeValueRepository.findOneBy({id});
+  
+      if (!beforevalue) {
+        throw new NotFoundException('Document Tracker not found');
+      }
+      beforevalue.name_value = updateBeforevalueDto.name_value;
+      beforevalue.price_value = updateBeforevalueDto.price_value;
+  
+      return this.beforeValueRepository.save(beforevalue);
+    }
+  
+    async deleteBeforevalue(id: number): Promise<void> {
+      const beforevalue = await this.beforeValueRepository.findOneBy({id});
+  
+      if (!beforevalue) {
+        throw new NotFoundException('Document Tracker not found');
+      }
+  
+      await this.beforeValueRepository.remove(beforevalue);
+    }
   }

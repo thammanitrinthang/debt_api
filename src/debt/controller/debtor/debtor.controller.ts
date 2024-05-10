@@ -1,18 +1,23 @@
 import { Body, Controller, Delete, Get, HttpException, HttpStatus, NotFoundException, Param, ParseIntPipe, Patch, Post, Put } from '@nestjs/common';
 import { DebtorService } from 'src/debt/service/debtor/debtor.service';
+import { CreateAfterValueDto, CreateBeforeValueDto, CreateCancelContractDto, UpdateAfterValueDto, UpdateBeforeValueDto, UpdateCancelContractDto } from 'src/dtos/CancelContract.dto';
 import { CreateDocumentTrackerDto, UpdateDocumentTrackerDto } from 'src/dtos/Document_tracker.dto';
 import { CreateInstallmentDto } from 'src/dtos/Installment.dto';
 import { CreateOutsourceTrackerDto, UpdateOutsourceTrackerDto } from 'src/dtos/Outsource_tracker.dto';
 import { CreatePhoneTrackerDto, UpdatePhoneTrackerDto } from 'src/dtos/Phone_tracker.dto';
+import { AfterValue } from 'src/entities/after_value';
+import { BeforeValue } from 'src/entities/before_value';
+import { CancelContract } from 'src/entities/cancel_contract';
 import { Debtor } from 'src/entities/debtors';
 import { DocumentTracker } from 'src/entities/document_tracker';
 import { Installment } from 'src/entities/installment';
 import { OutsourceTracker } from 'src/entities/outsource_tracker';
-import { PhoneCallTracker } from 'src/entities/phone_tracker';
+import { PhoneCallTracker } from 'src/entities/phone_call_tracker';
 
 @Controller('debtor')
 export class DebtorController {
   constructor(private readonly debtorService: DebtorService) { }
+
 
   @Get()
   async getDebtor() {
@@ -256,4 +261,148 @@ export class DebtorController {
   async countOutsourceTrackerUniqueDebtorIds(): Promise<number> {
     return this.debtorService.countOutsourceTrackerUniqueDebtorIds();
   }
+
+  //cancel contract
+  @Get(':id/cancel_contract')
+  async getAllCancelContract(@Param('id') id: number): Promise<CancelContract[]> {
+    try {
+      const allCancelContract = await this.debtorService.getAllCancelContract(id);
+      if (!allCancelContract) {
+        throw new HttpException('CancelContract not found', HttpStatus.NOT_FOUND);
+      }
+      return allCancelContract;
+    } catch (error) {
+      throw new HttpException('Error retrieving CancelContract trackers', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  @Get(':id/cancel_contract/:trackerId')
+  async getCancelContract(@Param('id') id: number, @Param('trackerId') trackerId: number): Promise<CancelContract> {
+    try {
+      const cancelContract = await this.debtorService.getCancelContract(trackerId);
+      if (!cancelContract) {
+        throw new HttpException('CancelContractr tracker not found', HttpStatus.NOT_FOUND);
+      }
+      return cancelContract;
+    } catch (error) {
+      throw new HttpException('Error retrieving CancelContract tracker', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  @Post(':id/cancel_contract')
+  createCancelContract(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() createCancelContractDto: CreateCancelContractDto)
+  {
+  return this.debtorService.createCancelContract(id,createCancelContractDto);
+  }
+  
+  @Put('cancel_contract/:id')
+  updateCancelContract(
+    @Param('id') id: number,
+    @Body() updateCancelContractDto: UpdateCancelContractDto
+  ) {
+    return this.debtorService.updateCancelContract(id, updateCancelContractDto);
+  }
+  @Delete('cancel_contract/:id')
+  async deleteCancelContract(@Param('id') id: string): Promise<string> {
+    try {
+      await this.debtorService.deleteCancelContract(+id);
+      await this.debtorService.resetAutoIncrement();
+      return 'CancelContract deleted successfully';
+    } catch (error) {
+      throw new HttpException('Failed to delete Outsource', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  //cancel contract count
+  @Get(':id/cancel_contracts/count')
+  async countCancelContractByDebtorId(@Param('id') id: string): Promise<number> {
+    try {
+      const debtorId = parseInt(id);
+      return await this.debtorService.countCancelContractByDebtorId(debtorId);
+    } catch (error) {
+      throw new HttpException('Failed to count CancelContract for debtor', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  @Get('cancel_contracts/count')
+  async countCancelContractUniqueDebtorIds(): Promise<number> {
+    return this.debtorService.countCancelContractUniqueDebtorIds();
+  }
+
+  //Aftervalue
+  @Get(':id/aftervalue')
+  async getAllAftervalue(@Param('id') id: number): Promise<AfterValue[]> {
+    try {
+      const allAftervalue = await this.debtorService.getAllAftervalue(id);
+      if (!allAftervalue) {
+        throw new HttpException('Aftervalue not found', HttpStatus.NOT_FOUND);
+      }
+      return allAftervalue;
+    } catch (error) {
+      throw new HttpException('Error retrieving Aftervalue trackers', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  @Post(':id/aftervalue')
+  createAftervalue(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() createAftervalueDto: CreateAfterValueDto)
+  {
+  return this.debtorService.createAftervalue(id,createAftervalueDto);
+  }
+  
+  @Put('aftervalue/:id')
+  updateAftervalue(
+    @Param('id') id: number,
+    @Body() updateAftervalueDto: UpdateAfterValueDto
+  ) {
+    return this.debtorService.updateAftervalue(id, updateAftervalueDto);
+  }
+  @Delete('aftervalue/:id')
+  async deleteAftervalue(@Param('id') id: string): Promise<string> {
+    try {
+      await this.debtorService.deleteAftervalue(+id);
+      await this.debtorService.resetAutoIncrement();
+      return 'Aftervalue deleted successfully';
+    } catch (error) {
+      throw new HttpException('Failed to delete Aftervalue', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  //Beforevalue
+  @Get(':id/beforevalue')
+  async getAllBeforevalue(@Param('id') id: number): Promise<BeforeValue[]> {
+    try {
+      const allBeforevalue = await this.debtorService.getAllBeforevalue(id);
+      if (!allBeforevalue) {
+        throw new HttpException('Beforevalue not found', HttpStatus.NOT_FOUND);
+      }
+      return allBeforevalue;
+    } catch (error) {
+      throw new HttpException('Error retrieving Beforevalue trackers', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  @Post(':id/beforevalue')
+  createBeforevalue(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() createBeforevalueDto: CreateBeforeValueDto)
+  {
+  return this.debtorService.createBeforevalue(id,createBeforevalueDto);
+  }
+  
+  @Put('beforevalue/:id')
+  updateBeforevalue(
+    @Param('id') id: number,
+    @Body() updateBeforevalueDto: UpdateBeforeValueDto
+  ) {
+    return this.debtorService.updateBeforevalue(id, updateBeforevalueDto);
+  }
+  @Delete('beforevalue/:id')
+  async deleteBeforevalue(@Param('id') id: string): Promise<string> {
+    try {
+      await this.debtorService.deleteBeforevalue(+id);
+      await this.debtorService.resetAutoIncrement();
+      return 'Beforevalue deleted successfully';
+    } catch (error) {
+      throw new HttpException('Failed to delete Beforevalue', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+ 
 }
