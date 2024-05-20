@@ -7,7 +7,7 @@
       }
     ],
     "routes": [
-      { "src": "/(.*)", "dest": "Dockerfile" ,
+      { "src": "/(.*)", "dest": "/dist/main" ,
       "methods": ["GET","POST","PUT","DELETE"]
     }
     ]
