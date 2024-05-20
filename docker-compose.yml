@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: debt_database
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  nestjs:
+    build: .
+    container_name: nestjs
+    environment:
+      TYPEORM_CONNECTION: mysql
+      TYPEORM_HOST: host.docker.internal
+      TYPEORM_PORT: 3306
+      TYPEORM_USERNAME: root
+      TYPEORM_PASSWORD: 
+      TYPEORM_DATABASE: debt_database
+      JWT_SECRET: secret
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+
+volumes:
+  mysql-data:

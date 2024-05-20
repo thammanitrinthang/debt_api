@@ -13,28 +13,31 @@ import { AfterValue } from './entities/after_value';
 import { User } from './user.entity';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import {JwtModule} from "@nestjs/jwt";
+import { JwtModule } from '@nestjs/jwt';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 
 @Module({
-  imports: [ 
+  imports: [
     TypeOrmModule.forRoot({
-    type: 'mysql',
-    host: 'localhost',
-    port: 3306,
-    username: 'root',
-    password: '',
-    database: 'debt_database',
-    entities: [
-      Debtor,Secondor,Installment,PhoneCallTracker,DocumentTracker,OutsourceTracker,CancelContract,AfterValue,BeforeValue,User
-    ],
-    synchronize: true,
-  }), DebtModule, 
-  TypeOrmModule.forFeature([User]),
-        JwtModule.register({
-            secret: 'secret',
-            signOptions: {expiresIn: '1d'}
-        })
+      type: 'mysql',
+      host: process.env.TYPEORM_HOST,
+      port: parseInt(process.env.TYPEORM_PORT, 10),
+      username: process.env.TYPEORM_USERNAME,
+      password: process.env.TYPEORM_PASSWORD,
+      database: process.env.TYPEORM_DATABASE,
+      entities: [
+        Debtor, Secondor, Installment, PhoneCallTracker, DocumentTracker, OutsourceTracker, CancelContract, AfterValue, BeforeValue, User
+      ],
+      synchronize: true,
+    }),
+    DebtModule,
+    TypeOrmModule.forFeature([User]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1d' }
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
